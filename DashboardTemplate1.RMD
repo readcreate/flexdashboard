@@ -1,0 +1,155 @@
+---
+title: "Data about cars"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE, message = F, warning = F}
+# This is a comment, because it comes after a # symbol. 
+# The computer ignores comments, even though they are within code chunks. 
+
+# Set working directory, if needed
+# setwd(...)
+
+# Install packages if needed
+if (!require(flexdashboard)) install.packages('flexdashboard')
+if (!require(knitr)) install.packages('knitr')
+if (!require(DT)) install.packages('DT')
+if (!require(dplyr)) install.packages('dplyr')
+if (!require(scales)) install.packages('scales')
+if (!require(plotly)) install.packages('plotly')
+if (!require(plyr)) install.packages('plyr')
+if (!require(treemap)) install.packages('treemap')
+if (!require(highcharter)) install.packages('highcharter')
+if (!require(factoextra)) install.packages('factoextra')
+
+# Load packages
+library(flexdashboard)
+library(knitr)
+library(DT)
+library(dplyr)
+library(scales)
+library(plotly)
+library(plyr)
+library(treemap)
+library(highcharter)
+
+# Load data (put code to load from Excel or CSV here, if needed)
+d <- mtcars
+
+# Do any required pre-processing
+d.scaled <- as.data.frame(scale(mtcars))
+```
+
+
+# Dashboard Information
+
+## Column 1 {data-width=500}
+
+### Data information
+
+Description of the data, from the authors: The data was extracted from the 1974 Motor Trend US magazine, and comprises fuel consumption and 10 aspects of automobile design and performance for 32 automobiles (1973–74 models).
+
+These are the variables in the data:
+
+*	mpg	Miles/(US) gallon
+*	cyl	Number of cylinders
+*	disp	Displacement (cu.in.)
+*	hp	Gross horsepower
+*	drat	Rear axle ratio
+*	wt	Weight (1000 lbs)
+*	qsec	1/4 mile time
+*	vs	Engine (0 = V-shaped, 1 = straight)
+* am Transmission (0 = automatic, 1 = manual)
+*	gear	Number of forward gears
+*	carb	Number of carburetors
+
+## Column 2 {data-width=500}
+
+### About the author {data-width=500}
+
+Anshul Kumar
+
+### About the organization
+
+MGH Institute of Health Professions is a graduate school founded by MGH. 
+
+# Explore Data {data-orientation=rows}
+
+## Row 1
+
+### Explore the dataset
+
+```{r}
+DT::datatable(d)
+```
+
+
+## Row 2
+
+### Relationship of MPG and weight
+
+```{r}
+with(d, plot(mpg~wt))
+```
+
+
+### Distribution by gears and transmission
+
+```{r}
+with(d, table(gear,am))
+```
+
+
+# Visualizations
+
+## Column 1  {data.width=500 .tabset .tabset-fade}
+
+### K-means clustering (k=2)
+
+Identify two groups in the data:
+
+```{r}
+library(factoextra)
+km <- kmeans(d.scaled, centers = 2)
+fviz_cluster(km, data = d.scaled)
+
+```
+
+### Transmission by region pie chart
+
+Where each car comes from, divided by transmission type:
+
+```{r}
+d$region <- c("Asia","Asia","Asia","North America","North America","North America","North America","Europe","Europe","Europe","Europe","Europe","Europe","Europe","North America","North America","North America","Europe","Asia","Asia","Asia","North America","North America","North America","North America","Europe","Europe","Europe","North America","Europe","Europe","Europe")
+
+d$transmission <- NA
+d$transmission[d$am==1] <- "Manual"
+d$transmission[d$am==0] = "Automatic"
+
+# with(d, table(am,transmission,useNA = "ifany"))
+
+d$Count <- 1
+
+dout <- data_to_hierarchical(d, c(region, transmission), Count)
+
+hchart(dout, type = "sunburst") %>% hc_legend()
+
+# d$region <- NULL
+# d$Count <- NULL
+```
+
+
+## Column 2 {data.width=500}
+
+### Data with clusters
+
+```{r}
+d.scaled <- as.data.frame(km$cluster)
+d$cluster <- d.scaled$`km$cluster`
+d.partial <- subset(d, select=c(mpg,wt,cluster))
+DT::datatable(d.partial)
+```
+
